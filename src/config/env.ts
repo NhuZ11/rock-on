@@ -25,6 +25,8 @@ const env: any = {
   // YouTube download configuration
   YT_DLP_PATH: process.env.YT_DLP_PATH || "yt-dlp",
   DOWNLOAD_TMP_DIR: process.env.DOWNLOAD_TMP_DIR || "/tmp/rockon",
+  // Netscape-format cookies.txt content for bypassing YouTube bot detection on cloud servers
+  YOUTUBE_COOKIES: process.env.YOUTUBE_COOKIES || "",
 
   // RockOn API key for single-user protection
   ROCKON_API_KEY: process.env.ROCKON_API_KEY || process.env.API_KEY,

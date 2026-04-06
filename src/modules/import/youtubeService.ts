@@ -32,9 +32,16 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
   const tmpId = `${Date.now()}`;
   const outputTemplate = path.join(env.DOWNLOAD_TMP_DIR, `${tmpId}.%(ext)s`);
   const metaJsonPath = path.join(env.DOWNLOAD_TMP_DIR, `${tmpId}.info.json`);
+  const cookiesPath = path.join(env.DOWNLOAD_TMP_DIR, `${tmpId}.cookies.txt`);
+
+  // Write YouTube cookies to a temp file if available (required on cloud servers to bypass bot detection)
+  let useCookies = false;
+  if (env.YOUTUBE_COOKIES) {
+    await fs.promises.writeFile(cookiesPath, env.YOUTUBE_COOKIES, "utf-8");
+    useCookies = true;
+  }
 
   try {
-    // Download best audio as mp3, write metadata to a separate .info.json file
     const cmd = [
       env.YT_DLP_PATH,
       "-o",
@@ -46,16 +53,15 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       "mp3",
       "--write-info-json",
       "--no-playlist",
-      // Use iOS client to bypass YouTube bot detection on cloud server IPs
-      "--extractor-args", "youtube:player_client=ios",
+      ...(useCookies ? ["--cookies", cookiesPath] : []),
       url,
     ];
-    //test
+
     const { stderr, exitCode } = await $`${cmd}`;
 
     if (exitCode !== 0) {
       const errText = stderr.toString();
-      console.error("[yt-dlp error]", errText); // visible in Render logs
+      console.error("[yt-dlp error]", errText);
       throw new AppError(
         `yt-dlp failed (exit ${exitCode}): ${errText || "unknown error"}`,
         500,
@@ -95,6 +101,7 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       : new AppError(`Failed to import YouTube audio: ${err.message}`, 500);
   } finally {
     await fs.promises.unlink(metaJsonPath).catch(() => { });
+    await fs.promises.unlink(cookiesPath).catch(() => { }); // clean up cookies temp file
   }
 };
 
