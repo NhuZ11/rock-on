@@ -46,16 +46,16 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       "mp3",
       "--write-info-json",  // writes <tmpId>.info.json — avoids polluting stdout
       "--no-playlist",      // only download the single video, not the whole playlist
-      "--quiet",            // suppress noisy progress logs
-      "--no-warnings",
       url,
     ];
 
     const { stderr, exitCode } = await $`${cmd}`;
 
     if (exitCode !== 0) {
+      const errText = stderr.toString();
+      console.error("[yt-dlp error]", errText); // visible in Render logs
       throw new AppError(
-        `yt-dlp failed: ${stderr.toString() || "unknown error"}`,
+        `yt-dlp failed (exit ${exitCode}): ${errText || "unknown error"}`,
         500,
       );
     }
