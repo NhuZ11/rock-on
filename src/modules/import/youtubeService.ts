@@ -44,8 +44,10 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       "--extract-audio",
       "--audio-format",
       "mp3",
-      "--write-info-json",  // writes <tmpId>.info.json — avoids polluting stdout
-      "--no-playlist",      // only download the single video, not the whole playlist
+      "--write-info-json",
+      "--no-playlist",
+      // Use iOS client to bypass YouTube bot detection on cloud server IPs
+      "--extractor-args", "youtube:player_client=ios",
       url,
     ];
     //test
