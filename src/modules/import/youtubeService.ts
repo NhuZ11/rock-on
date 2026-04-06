@@ -53,6 +53,7 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       "mp3",
       "--write-info-json",
       "--no-playlist",
+      "--js-runtimes", "node", // use Node.js to solve YouTube's signature/n-challenge
       ...(useCookies ? ["--cookies", cookiesPath] : []),
       url,
     ];
