@@ -28,27 +28,30 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
 
   await ensureTmpDir();
 
-  const metaJsonPath = path.join(env.DOWNLOAD_TMP_DIR, "meta.json");
-  const audioPath = path.join(env.DOWNLOAD_TMP_DIR, "audio.%(ext)s");
+  // Use a unique temp ID per request to avoid file collisions
+  const tmpId = `${Date.now()}`;
+  const outputTemplate = path.join(env.DOWNLOAD_TMP_DIR, `${tmpId}.%(ext)s`);
+  const metaJsonPath = path.join(env.DOWNLOAD_TMP_DIR, `${tmpId}.info.json`);
 
   try {
-    // Fetch metadata and download audio in one go
+    // Download best audio as mp3, write metadata to a separate .info.json file
     const cmd = [
       env.YT_DLP_PATH,
       "-o",
-      audioPath,
+      outputTemplate,
       "-f",
       "bestaudio",
       "--extract-audio",
       "--audio-format",
       "mp3",
-      "--print-json",
-      "-o",
-      path.join(env.DOWNLOAD_TMP_DIR, "%(id)s.%(ext)s"),
+      "--write-info-json",  // writes <tmpId>.info.json — avoids polluting stdout
+      "--no-playlist",      // only download the single video, not the whole playlist
+      "--quiet",            // suppress noisy progress logs
+      "--no-warnings",
       url,
     ];
 
-    const { stdout, stderr, exitCode } = await $`${cmd}`;
+    const { stderr, exitCode } = await $`${cmd}`;
 
     if (exitCode !== 0) {
       throw new AppError(
@@ -57,10 +60,12 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       );
     }
 
-    const meta = JSON.parse(stdout.toString()) as YtDlpMetadata;
+    // Read the metadata from the written .info.json file
+    const metaRaw = await fs.promises.readFile(metaJsonPath, "utf-8");
+    const meta = JSON.parse(metaRaw) as YtDlpMetadata;
     const videoId = meta.id;
 
-    const localFilePath = path.join(env.DOWNLOAD_TMP_DIR, `${videoId}.mp3`);
+    const localFilePath = path.join(env.DOWNLOAD_TMP_DIR, `${tmpId}.mp3`);
 
     const storagePath = `songs/${videoId}.mp3`;
 
@@ -79,7 +84,7 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       mime_type: "audio/mpeg",
     });
 
-    await fs.promises.unlink(localFilePath).catch(() => {});
+    await fs.promises.unlink(localFilePath).catch(() => { });
 
     return song;
   } catch (err: any) {
@@ -87,7 +92,7 @@ export const downloadAndStoreFromYoutube = async (url: string) => {
       ? err
       : new AppError(`Failed to import YouTube audio: ${err.message}`, 500);
   } finally {
-    await fs.promises.unlink(metaJsonPath).catch(() => {});
+    await fs.promises.unlink(metaJsonPath).catch(() => { });
   }
 };
 
