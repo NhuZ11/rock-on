@@ -3,6 +3,8 @@ import cors from "@elysiajs/cors";
 export const allowOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
+  "https://rockon-frontend.vercel.app",
+
   // add your deployed PWA domains here, e.g.:
   // "https://rockon.yourdomain.com",
 ];
